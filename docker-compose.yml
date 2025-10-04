@@ -1,0 +1,92 @@
+# version: "3.9"
+
+services:
+  eureka-server:
+    container_name: eureka-server
+    build: ./eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - microservices-net
+
+  api-gateway:
+    build: ./api-gateway-server
+    container_name: api-gateway
+    depends_on:
+      - eureka-server
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    ports:
+      - "8080:8080"
+    networks:
+      - microservices-net
+
+  postgres-db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Nasir@786
+      POSTGRES_DB: TechMart
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+
+  role-db:
+    image: postgres:15
+    container_name: role-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Nasir@786
+      POSTGRES_DB: role_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - roledb-data:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/TechMart
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Nasir@786
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      - postgres-db
+      - eureka-server
+    networks:
+      - microservices-net
+
+  role-service:
+    build: ./role-service
+    container_name: role-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://role-db:5432/role_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Nasir@786
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      - role-db
+      - eureka-server
+    networks:
+      - microservices-net
+
+volumes:
+  pgdata:
+  roledb-data:
+
+networks:
+  microservices-net:
+    external: true
+
+

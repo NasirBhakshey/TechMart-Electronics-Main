@@ -1,4 +1,3 @@
-# Use Java 21 instead of 17
 FROM eclipse-temurin:21-jdk
 
 # Install pg_isready utility
@@ -9,6 +8,4 @@ COPY target/*.jar /app/app.jar
 COPY wait-for-postgres.sh /app/wait-for-postgres.sh
 RUN chmod +x /app/wait-for-postgres.sh
 
-ENTRYPOINT ["sh", "/app/wait-for-postgres.sh", "postgres-db", "java -jar /app/app.jar"]
-
-
+ENTRYPOINT ["sh", "/app/wait-for-postgres.sh", "role-db", "java", "-jar", "/app/app.jar"]
