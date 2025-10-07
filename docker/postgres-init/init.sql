@@ -1,0 +1,2 @@
+CREATE DATABASE user_db;
+CREATE DATABASE role_db;
