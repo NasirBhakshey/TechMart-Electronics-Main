@@ -1,92 +1,121 @@
-# version: "3.9"
+version: "3.9"
 
 services:
-  eureka-server:
-    container_name: eureka-server
-    build: ./eureka-server
-    ports:
-      - "8761:8761"
-    networks:
-      - microservices-net
-
-  api-gateway:
-    build: ./api-gateway-server
-    container_name: api-gateway
-    depends_on:
-      - eureka-server
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    ports:
-      - "8080:8080"
-    networks:
-      - microservices-net
-
-  postgres-db:
+  postgres:
     image: postgres:15
     container_name: postgres-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Nasir@786
-      POSTGRES_DB: TechMart
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-  role-db:
-    image: postgres:15
-    container_name: role-db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Nasir@786
-      POSTGRES_DB: role_db
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
     ports:
-      - "5433:5432"
-    volumes:
-      - roledb-data:/var/lib/postgresql/data
+      - "8761:8761"
     networks:
       - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://eureka-server:8761/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    depends_on:
+      - eureka-server
+    ports:
+      - "8080:8080"
+    networks:
+      - microservices-net
+    entrypoint: ["bash", "-c", "./wait-for-services.sh --eureka eureka-server:8761 -- java -jar app.jar"]
+    volumes:
+      - ./api-gateway/wait-for-services.sh:/app/wait-for-services.sh
+    restart: unless-stopped
 
   user-service:
     build: ./user-service
     container_name: user-service
-    ports:
-      - "8081:8081"
+    depends_on:
+      - postgres
+      - eureka-server
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/TechMart
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Nasir@786
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    depends_on:
-      - postgres-db
-      - eureka-server
+    ports:
+      - "8081:8081"
     networks:
       - microservices-net
+    entrypoint: ["bash", "-c", "./wait-for-services.sh --postgres postgres:5432 --eureka eureka-server:8761 -- java -jar app.jar"]
+    volumes:
+      - ./user-service/wait-for-services.sh:/app/wait-for-services.sh
+    restart: unless-stopped
 
   role-service:
     build: ./role-service
     container_name: role-service
-    ports:
-      - "8082:8082"
+    depends_on:
+      - postgres
+      - eureka-server
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://role-db:5432/role_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/role_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Nasir@786
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    depends_on:
-      - role-db
-      - eureka-server
+    ports:
+      - "8082:8082"
     networks:
       - microservices-net
+    entrypoint: ["bash", "-c", "./wait-for-services.sh --postgres postgres:5432 --eureka eureka-server:8761 -- java -jar app.jar"]
+    volumes:
+      - ./role-service/wait-for-services.sh:/app/wait-for-services.sh
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - user-service
+      - role-service
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - microservices-net
+    restart: unless-stopped
 
 volumes:
   pgdata:
-  roledb-data:
 
 networks:
   microservices-net:
-    external: true
-
-
