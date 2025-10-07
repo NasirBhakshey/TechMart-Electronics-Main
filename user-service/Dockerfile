@@ -1,14 +1,23 @@
-# Use Java 21 instead of 17
-FROM eclipse-temurin:21-jdk
-
-# Install pg_isready utility
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
-
+FROM eclipse-temurin:21-jdk AS builder
 WORKDIR /app
-COPY target/*.jar /app/app.jar
-COPY wait-for-postgres.sh /app/wait-for-postgres.sh
-RUN chmod +x /app/wait-for-postgres.sh
+COPY . .
+RUN ./mvnw clean package -DskipTests
 
-ENTRYPOINT ["sh", "/app/wait-for-postgres.sh", "postgres-db", "java -jar /app/app.jar"]
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+RUN apt-get update && apt-get install -y netcat-openbsd bash && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/target/*.jar app.jar
+
+# Copy the wait-for-postgres script into the container
+COPY wait-for-services.sh ./wait-for-services.sh
+
+# ✅ Add this line for Windows users
+RUN chmod +x /app/wait-for-services.sh
+
+
+EXPOSE 8081
+ENTRYPOINT ["sh", "-c", "./wait-for-services.sh postgres 5432 eureka-server 8761 -- java -jar app.jar"]
+
 
 
