@@ -18,11 +18,10 @@ public class MainController {
     @Autowired
     private Roleservice roleimp;
 
-    @PostMapping("/create-role")
+    @PostMapping
     public ResponseEntity<Role> createRole(@RequestBody Role roles) {
         Role savedRole = roleimp.insertrole(roles);
         System.out.println("Success...");
         return ResponseEntity.ok(savedRole);
     }
-
 }
