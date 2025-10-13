@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.microservices.role_service.entity.Role;
 import com.microservices.role_service.service.Roleservice;
 
-
 @RestController
 @RequestMapping("/roles")
 public class MainController {
