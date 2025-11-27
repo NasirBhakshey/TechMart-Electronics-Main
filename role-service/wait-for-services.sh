@@ -1,19 +1,6 @@
 #!/bin/bash
-# -------------------------------------------------------------
-# wait-for-services.sh
-# Generic wait script for microservices: Postgres, Eureka, etc.
-#
-# Usage:
-#   ./wait-for-services.sh --postgres host:port --eureka host:port -- <command>
-# Example:
-#   ./wait-for-services.sh --postgres postgres:5432 --eureka eureka-server:8761 -- java -jar app.jar
-# -------------------------------------------------------------
-
 set -e
 
-# ------------------------
-# Parse arguments
-# ------------------------
 while [ $# -gt 0 ]; do
   case "$1" in
     --postgres)
@@ -36,9 +23,6 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# ------------------------
-# Split host:port into separate variables
-# ------------------------
 if [ -n "$POSTGRES_HOSTPORT" ]; then
   POSTGRES_HOST=$(echo "$POSTGRES_HOSTPORT" | cut -d: -f1)
   POSTGRES_PORT=$(echo "$POSTGRES_HOSTPORT" | cut -d: -f2)
@@ -49,9 +33,6 @@ if [ -n "$EUREKA_HOSTPORT" ]; then
   EUREKA_PORT=$(echo "$EUREKA_HOSTPORT" | cut -d: -f2)
 fi
 
-# ------------------------
-# Wait for Postgres
-# ------------------------
 if [ -n "$POSTGRES_HOSTPORT" ]; then
   echo "⏳ Waiting for Postgres at $POSTGRES_HOST:$POSTGRES_PORT..."
   until nc -z "$POSTGRES_HOST" "$POSTGRES_PORT"; do
@@ -61,25 +42,14 @@ if [ -n "$POSTGRES_HOSTPORT" ]; then
   echo "✅ Postgres is up!"
 fi
 
-# ------------------------
-# Wait for Eureka
-# ------------------------
 if [ -n "$EUREKA_HOSTPORT" ]; then
   echo "⏳ Waiting for Eureka at $EUREKA_HOST:$EUREKA_PORT..."
-  while true; do
-    STATUS=$(curl -s "http://$EUREKA_HOST:$EUREKA_PORT/actuator/health" || echo "")
-    if echo "$STATUS" | grep -q '"status":"UP"'; then
-      echo "✅ Eureka is up!"
-      break
-    else
-      echo "   Eureka not ready yet..."
-      sleep 3
-    fi
+  until curl -s "http://$EUREKA_HOST:$EUREKA_PORT/actuator/health" | grep -q '"status":"UP"'; do
+    echo "   Eureka not ready yet..."
+    sleep 3
   done
-fi
+  echo "✅ Eureka is up!"
+fi  
 
-# ------------------------
-# Start the main service
-# ------------------------
-echo "🚀 All dependencies are ready. Starting the application..."
+echo "🚀 All dependencies ready, starting application..."
 exec $CMD

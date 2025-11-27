@@ -1,4 +1,7 @@
 package com.microservices.role_service.service;
+
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,16 @@ public class Roleservice implements Roleinterface {
     @Override
     public Role insertrole(Role role) {
         return repository.save(role);
+    }
+
+    @Override
+    public Role getRole(String name) {
+        Optional<Role> optional = repository.findByName(name);
+        if (optional.isPresent()) {
+            return optional.get();
+        } else {
+            return null;
+        }
     }
 
 }

@@ -6,4 +6,6 @@ public interface Roleinterface {
 
     public Role insertrole(Role role);
 
+    public Role getRole(String name);
+
 }
