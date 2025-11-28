@@ -1,20 +1,20 @@
+# Builder stage
 FROM eclipse-temurin:21-jdk AS builder
 WORKDIR /app
 COPY . .
 RUN ./mvnw clean package -DskipTests
 
+# Runtime stage
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y netcat-openbsd bash curl && rm -rf /var/lib/apt/lists/*
 
+# Copy built jar
 COPY --from=builder /app/target/*.jar app.jar
 
-# Copy the wait-for-postgres script into the container
+# Copy wait-for-services script (if needed)
 COPY wait-for-postgres.sh ./wait-for-postgres.sh
-
-# ✅ Add this line for Windows users
 RUN chmod +x ./wait-for-postgres.sh
 
 EXPOSE 8761
-ENTRYPOINT ["sh", "-c", "./wait-for-postgres.sh postgres 5432 java -jar app.jar"]
-
+ENTRYPOINT ["bash", "-c", "./wait-for-postgres.sh postgres 5432 java -jar app.jar"]
