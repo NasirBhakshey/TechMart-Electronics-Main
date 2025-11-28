@@ -1,0 +1,11 @@
+{
+  "java.compile.nullAnalysis.nonnull": [
+    "javax.annotation.Nonnull",
+    "org.eclipse.jdt.annotation.NonNull",
+    "org.springframework.lang.NonNull",
+    "org.jspecify.annotations.NonNull"
+  ],
+  "java.compile.nullAnalysis.mode": "automatic",
+  "workbench.settings.useSplitJSON": false,
+  "java.format.settings.url": ".vscode/java-formatter.xml"
+}
