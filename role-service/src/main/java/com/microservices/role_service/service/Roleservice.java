@@ -1,5 +1,6 @@
 package com.microservices.role_service.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,11 @@ public class Roleservice implements Roleinterface {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public List<Role> getall() {
+        return repository.findAll();
     }
 
 }

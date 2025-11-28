@@ -30,4 +30,9 @@ public class MainController {
     public Role getRole(@PathVariable("name") String name) {
         return roleimp.getRole(name);
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<?> getAll() {
+        return ResponseEntity.ok(roleimp.getall());
+    }
 }
