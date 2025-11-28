@@ -22,21 +22,29 @@ services:
     restart: unless-stopped
 
   eureka-server:
-    build: ./eureka-server
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
     container_name: eureka-server
     ports:
       - "8761:8761"
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://eureka-server:8761/actuator/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://eureka-server:8761/actuator/health || exit 1",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
     restart: unless-stopped
 
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
     container_name: api-gateway
     depends_on:
       - eureka-server
@@ -44,13 +52,22 @@ services:
       - "8080:8080"
     networks:
       - microservices-net
-    entrypoint: ["bash", "-c", "./wait-for-services.sh --eureka eureka-server:8761 -- java -jar app.jar"]
-    volumes:
-      - ./api-gateway/wait-for-services.sh:/app/wait-for-services.sh
+    entrypoint:
+      [
+        "bash",
+        "-c",
+        "./wait-for-services.sh --eureka eureka-server:8761 -- java -jar app.jar",
+      ]
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      retries: 5
 
   user-service:
-    build: ./user-service
+    build:
+      context: ./
+      dockerfile: ./user-service/Dockerfile
     container_name: user-service
     depends_on:
       - postgres
@@ -64,13 +81,22 @@ services:
       - "8081:8081"
     networks:
       - microservices-net
-    entrypoint: ["bash", "-c", "./wait-for-services.sh --postgres postgres:5432 --eureka eureka-server:8761 -- java -jar app.jar"]
-    volumes:
-      - ./user-service/wait-for-services.sh:/app/wait-for-services.sh
+    entrypoint:
+      [
+        "bash",
+        "-c",
+        "./wait-for-services.sh --postgres postgres:5432 --eureka eureka-server:8761 -- java -jar app.jar",
+      ]
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl", "-f", "http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      retries: 5
 
   role-service:
-    build: ./role-service
+    build:
+      context: ./role-service
+      dockerfile: Dockerfile
     container_name: role-service
     depends_on:
       - postgres
@@ -84,10 +110,17 @@ services:
       - "8082:8082"
     networks:
       - microservices-net
-    entrypoint: ["bash", "-c", "./wait-for-services.sh --postgres postgres:5432 --eureka eureka-server:8761 -- java -jar app.jar"]
-    volumes:
-      - ./role-service/wait-for-services.sh:/app/wait-for-services.sh
+    entrypoint:
+      [
+        "bash",
+        "-c",
+        "./wait-for-services.sh --postgres postgres:5432 --eureka eureka-server:8761 -- java -jar app.jar",
+      ]
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:latest
