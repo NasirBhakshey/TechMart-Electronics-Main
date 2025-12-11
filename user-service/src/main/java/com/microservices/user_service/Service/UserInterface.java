@@ -2,6 +2,7 @@ package com.microservices.user_service.Service;
 
 import java.util.List;
 
+import com.microservices.dto.LoginResponse;
 import com.microservices.user_service.entities.User;
 
 public interface UserInterface {
@@ -12,7 +13,7 @@ public interface UserInterface {
 
     public User getUserByEmail(String email);
 
-    public String login(String email, String password);
+    public LoginResponse login(String email, String password);
 
     public String findbyrole(String role);
 
