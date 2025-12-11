@@ -14,18 +14,22 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET = "your-256-bit-secret-your-256-bit-secret"; // 32+ chars
+    private static final String SECRET = "your-256-bit-secret-your-256-bit-secret"; // must be 32 bytes
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
+    private Jws<Claims> parseToken(String token) {
+        return Jwts.parser() // NEW API
+                .verifyWith(getSigningKey()) // Add signing key
+                .build().parseSignedClaims(token); // Use parseSignedClaims() instead of parseClaimsJws()
+    }
+
+    // ---------------- VALIDATION -----------------
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
+            parseToken(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             System.out.println("❌ Invalid JWT: " + e.getMessage());
@@ -33,19 +37,36 @@ public class JwtUtil {
         }
     }
 
+    // ---------------- CLAIMS -----------------
+    private Claims getClaims(String token) {
+        return parseToken(token).getPayload();
+    }
+
     public String getUsername(String token) {
-        return getAllClaims(token).getPayload().getSubject();
+        return getClaims(token).getSubject();
+    }
+
+    public String getEmail(String token) {
+        return getClaims(token).get("email", String.class);
+    }
+
+    public String getUserId(String token) {
+        return getClaims(token).get("userId", String.class);
     }
 
     public String getRole(String token) {
-        return getAllClaims(token).getPayload().get("role", String.class);
-    }
+        // role might be saved as "role" or "roles"
+        String role = getClaims(token).get("role", String.class);
 
-    private Jws<Claims> getAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token);
+        if (role == null) {
+            // Sometimes roles are stored as array
+            Object rolesObj = getClaims(token).get("roles");
+            if (rolesObj != null) {
+                role = rolesObj.toString().replace("[", "").replace("]", "");
+            }
+        }
+
+        return role;
     }
 
 }
