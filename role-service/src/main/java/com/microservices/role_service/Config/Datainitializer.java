@@ -16,22 +16,17 @@ public class Datainitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        if (rolerepository.count() > 0) {
-            Role role = new Role();
-            role.setName("ADMIN");
-
-            Role role1 = new Role();
-            role1.setName("USER");
-
-            Role role2 = new Role();
-            role2.setName("MANAGER");
-
-            rolerepository.save(role);
-            rolerepository.save(role1);
-            rolerepository.save(role2);
-
-            System.out.println("✅ Seeded default role");
+        if (!rolerepository.existsByName("ADMIN")) {
+            rolerepository.save(new Role(null, "ADMIN"));
         }
+        if (!rolerepository.existsByName("USER")) {
+            rolerepository.save(new Role(null, "USER"));
+        }
+        if (!rolerepository.existsByName("MANAGER")) {
+            rolerepository.save(new Role(null, "MANAGER"));
+        }
+
+        System.out.println("Default roles inserted in role-service.");
 
     }
 

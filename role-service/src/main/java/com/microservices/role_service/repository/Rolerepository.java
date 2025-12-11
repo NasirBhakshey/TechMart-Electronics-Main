@@ -9,5 +9,8 @@ import java.util.Optional;
 public interface Rolerepository extends JpaRepository<Role, Integer>{
 
     public Optional<Role> findByName(String name);
+    
+    public boolean existsByName(String name);
+
 
 }
