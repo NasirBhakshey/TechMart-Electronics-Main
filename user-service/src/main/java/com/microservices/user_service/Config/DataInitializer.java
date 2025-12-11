@@ -32,6 +32,10 @@ public class DataInitializer implements CommandLineRunner {
             Roledto managerRole = client.getRoleByName("MANAGER");
             Roledto userRole = client.getRoleByName("USER");
 
+            if(adminRole==null || managerRole==null || userRole==null){
+                throw new RuntimeException("Roles not found");
+            }
+
             User admin = new User();
             admin.setName("ADMIN");
             admin.setEmail("admin@example.com");

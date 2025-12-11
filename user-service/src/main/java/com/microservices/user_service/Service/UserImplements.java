@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.microservices.dto.LoginResponse;
 import com.microservices.dto.Roledto;
 import com.microservices.user_service.Repository.UserRepository;
 import com.microservices.user_service.Security.JwtService;
@@ -34,11 +35,13 @@ public class UserImplements implements UserInterface {
         try {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
             Roledto role = client.getRoleByName("USER");
+            if (role == null) {
+                throw new RuntimeException("Role not found");
+            }
             user.setRole(role.getName());
             return userRepository.save(user);
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException("Insert user failed → " + e.getMessage());
         }
     }
 
@@ -50,12 +53,17 @@ public class UserImplements implements UserInterface {
 
     @Override
     public User getUserByEmail(String email) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getUserByEmail'");
+        Optional<User> optional = userRepository.findByemail(email);
+        if(optional.isPresent()){
+            return optional.get();
+        }else{
+            return null;
+        }
+        
     }
 
     @Override
-    public String login(String email, String password) {
+    public LoginResponse login(String email, String password) {
 
         Optional<User> optional = userRepository.findByemail(email);
 
@@ -69,8 +77,9 @@ public class UserImplements implements UserInterface {
         if (!isMatch) {
             throw new RuntimeException("Invalid Password");
         }
-        List<String> roles = Arrays.asList(user.getRole().split(","));
-        return jwtService.generateAccessToken(user.getName(), roles);
+        String accesstoken = jwtService.generateAccessToken(user);
+        String refreshtoken = jwtService.generateRefreshToken(user.getEmail());
+        return new LoginResponse(accesstoken,refreshtoken,user.getName(),user.getEmail(),user.getRole());
 
     }
 
@@ -100,5 +109,4 @@ public class UserImplements implements UserInterface {
             return null;
         }
     }
-
 }

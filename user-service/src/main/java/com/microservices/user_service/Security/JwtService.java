@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.microservices.user_service.entities.User;
+
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
@@ -15,38 +17,30 @@ import javax.crypto.SecretKey;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "mySuperSecretKey12345mySuperSecretKey12345"; // should be at least 256
-                                                                                           // bits (32 chars)
+    private static final String SECRET_KEY = "your-256-bit-secret-your-256-bit-secret"; // should be at least 256
+                                                                                        // bits (32 chars)
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    public String generateAccessToken(String username, List<String> role) {
-        return Jwts.builder()
-                .subject(username)
-                .claim("role", role)    
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000)) // 10 minutes
-                .signWith(getSigningKey())
-                .compact();
+    public String generateAccessToken(User user) {
+
+        return Jwts.builder().subject(user.getEmail()).claim("email", user.getEmail())
+                .claim("userId", String.valueOf(user.getId())).claim("role", user.getRole()) // single role string
+                .issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
+                .signWith(getSigningKey()).compact();
     }
 
     public String generateRefreshToken(String username) {
-        return Jwts.builder()
-                .subject(username)
-                .issuedAt(new Date())
+        return Jwts.builder().subject(username).issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000)) // 24 hours
-                .signWith(getSigningKey())
-                .compact();
+                .signWith(getSigningKey()).compact();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey()) // new method instead of setSigningKey()
-                    .build()
-                    .parseSignedClaims(token); // will throw if invalid
+            Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token);
             return true;
         } catch (Exception e) {
             return false;
@@ -54,28 +48,15 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload().getSubject();
     }
 
     public String extractRole(String token) {
-        return (String) Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
+        return (String) Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload()
                 .get("role");
     }
 
     public Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
     }
 }
